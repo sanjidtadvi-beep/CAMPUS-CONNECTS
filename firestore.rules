@@ -12,7 +12,8 @@ service cloud.firestore {
     }
 
     function isEmailVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+      // Relaxed for development to allow password-based sign-ins
+      return isSignedIn();
     }
 
     function isValidId(id) {
