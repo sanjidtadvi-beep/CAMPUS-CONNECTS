@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidClub(data) {
+      return data.keys().hasAll(['name', 'email'])
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.email is string && data.email.size() <= 100
+          && (data.get('description', '') is string && data.description.size() <= 1000)
+          && (data.get('logo', '') is string && data.logo.size() <= 500)
+          && (data.get('banner', '') is string && data.banner.size() <= 500);
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasAll(['clubId', 'title', 'venue', 'date', 'createdAt'])
+          && isValidId(data.clubId)
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.venue is string && data.venue.size() <= 200
+          && data.date is string && data.date.size() <= 100
+          && (data.get('description', '') is string && data.description.size() <= 5000)
+          && (data.get('banner', '') is string && data.banner.size() <= 500)
+          && (data.get('registrationLink', '') is string && data.registrationLink.size() <= 500);
+    }
+
+    // --- Collection Routes ---
+
+    match /clubs/{clubId} {
+      allow get: if true;
+      allow list: if true; // Public directory
+      
+      allow create: if isEmailVerified() 
+                    && isValidId(clubId)
+                    && isValidClub(incoming())
+                    && incoming().email == request.auth.token.email
+                    && incoming().keys().size() <= 6; // name, email, desc, logo, banner + potential others
+
+      allow update: if isEmailVerified()
+                    && isValidClub(incoming())
+                    && existing().email == request.auth.token.email
+                    && incoming().email == existing().email // Immutable email
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'logo', 'banner']);
+
+      allow delete: if false; // Clubs are managed by admins or higher authority
+    }
+
+    match /events/{eventId} {
+      allow get: if true;
+      allow list: if true;
+
+      function isClubOwner(clubId) {
+        return get(/databases/$(database)/documents/clubs/$(clubId)).data.email == request.auth.token.email;
+      }
+
+      allow create: if isEmailVerified()
+                    && isValidId(eventId)
+                    && isValidEvent(incoming())
+                    && incoming().createdAt == request.time
+                    && isClubOwner(incoming().clubId)
+                    && incoming().keys().size() <= 8;
+
+      allow update: if isEmailVerified()
+                    && isValidEvent(incoming())
+                    && isClubOwner(existing().clubId)
+                    && incoming().clubId == existing().clubId // Immutable clubId
+                    && incoming().createdAt == existing().createdAt // Immutable createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'venue', 'date', 'banner', 'registrationLink']);
+
+      allow delete: if isEmailVerified()
+                    && isClubOwner(existing().clubId);
+    }
+  }
+}

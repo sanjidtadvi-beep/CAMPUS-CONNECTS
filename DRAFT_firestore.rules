@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // AUTH HELPERS
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // CLUBS
+    match /clubs/{clubId} {
+      function isValidClub(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+            && data.email is string && data.email.size() > 0 && data.email.size() <= 100
+            && (data.get('description', '') is string && data.get('description', '').size() <= 2000)
+            && (data.get('logo', '') is string && data.get('logo', '').size() <= 1000)
+            && (data.get('banner', '') is string && data.get('banner', '').size() <= 1000);
+      }
+
+      allow read: if true; // Publicly readable
+      
+      allow update: if isSignedIn() 
+          && isOwner(resource.data.email)
+          && isValidClub(request.resource.data)
+          && request.resource.data.email == resource.data.email; // Email is immutable for clubs
+          
+      // Create is limited to admins or special setup, but since user said accounts are manual, 
+      // we might want to allow a specific admin email or just keep it restricted for manual insertion.
+      // For MVP, if we want clubs to "register", we need a create rule. 
+      // But the user said "Club accounts are manually added in Firebase Authentication".
+      // They might still need to create their entry in Firestore.
+      allow create: if isSignedIn() && isEmailVerified() && isValidClub(request.resource.data) && request.resource.data.email == request.auth.token.email;
+    }
+
+    // EVENTS
+    match /events/{eventId} {
+      function isValidEvent(data) {
+        return data.clubId is string && isValidId(data.clubId)
+            && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+            && data.venue is string && data.venue.size() > 0 && data.venue.size() <= 200
+            && data.date is string && data.date.size() > 0
+            && (data.get('description', '') is string && data.get('description', '').size() <= 5000)
+            && (data.get('banner', '') is string && data.get('banner', '').size() <= 1000)
+            && (data.get('registrationLink', '') is string && data.get('registrationLink', '').size() <= 1000);
+      }
+
+      function clubExists(clubId) {
+        return exists(/databases/$(database)/documents/clubs/$(clubId));
+      }
+      
+      function isClubAdmin(clubId) {
+        return get(/databases/$(database)/documents/clubs/$(clubId)).data.email == request.auth.token.email;
+      }
+
+      allow read: if true;
+
+      allow create: if isSignedIn() 
+          && isEmailVerified()
+          && isValidEvent(request.resource.data)
+          && clubExists(request.resource.data.clubId)
+          && isClubAdmin(request.resource.data.clubId)
+          && request.resource.data.createdAt == request.time;
+
+      allow update: if isSignedIn() 
+          && isEmailVerified()
+          && isValidEvent(request.resource.data)
+          && isClubAdmin(resource.data.clubId)
+          && request.resource.data.clubId == resource.data.clubId; // Cannot change clubId
+
+      allow delete: if isSignedIn() 
+          && isEmailVerified()
+          && isClubAdmin(resource.data.clubId);
+    }
+  }
+}

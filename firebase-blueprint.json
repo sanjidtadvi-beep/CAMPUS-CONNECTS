@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Club": {
+      "title": "Club",
+      "description": "A campus club profile.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Club name" },
+        "description": { "type": "string", "description": "Club description" },
+        "logo": { "type": "string", "description": "URL to club logo" },
+        "banner": { "type": "string", "description": "URL to club banner" },
+        "email": { "type": "string", "description": "Club contact/admin email" }
+      },
+      "required": ["name", "email"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "An event hosted by a club.",
+      "type": "object",
+      "properties": {
+        "clubId": { "type": "string", "description": "ID of the hosting club" },
+        "title": { "type": "string", "description": "Event title" },
+        "description": { "type": "string", "description": "Detailed description of the event" },
+        "banner": { "type": "string", "description": "URL to event banner" },
+        "venue": { "type": "string", "description": "Location of the event" },
+        "date": { "type": "string", "description": "Date and time of the event" },
+        "registrationLink": { "type": "string", "description": "External registration URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["clubId", "title", "date", "venue"]
+    }
+  },
+  "firestore": {
+    "/clubs/{clubId}": {
+      "schema": "Club",
+      "description": "Collection of campus clubs."
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Collection of campus events."
+    }
+  }
+}
