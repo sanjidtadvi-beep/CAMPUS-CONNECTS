@@ -123,7 +123,7 @@ export default function EventDetails() {
               <div className="p-8 border border-border rounded-3xl bg-secondary relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
                 
-                <h3 className="text-lg font-black text-white uppercase italic tracking-widest mb-2">RSVP Now</h3>
+                <h3 className="text-lg font-black text-white uppercase italic tracking-widest mb-2">Register Now</h3>
                 <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em] mb-8">Registration is open.</p>
                 
                 <a 

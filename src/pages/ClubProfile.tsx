@@ -120,7 +120,7 @@ export default function ClubProfile() {
                           rel="noopener noreferrer"
                           className="flex-grow py-2.5 px-4 bg-white text-black font-black rounded-full text-xs hover:bg-zinc-200 transition-all text-center active-scale"
                         >
-                          RSVP
+                          REGISTER
                         </a>
                         <button className="p-2.5 bg-secondary border border-border rounded-full text-white hover:bg-zinc-800 transition-all active-scale">
                           <Share2 size={14} />

@@ -190,7 +190,7 @@ export default function Home() {
                           rel="noopener noreferrer"
                           className="flex-grow py-2.5 px-4 bg-white text-black font-black rounded-full text-xs hover:bg-zinc-200 transition-all text-center active-scale"
                         >
-                          RSVP
+                          REGISTER
                         </a>
                         <button 
                           onClick={() => handleShare(event)}
